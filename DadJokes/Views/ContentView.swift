@@ -11,8 +11,9 @@ struct ContentView: View {
     // MARK: Stored properties
     
     // Detect when an app moves between foreground, background, and inactive states
-    // NOTE: A complete list of all
-    // with @Environment can be found here
+    // NOTE: A complete list of keypaths that can be used with @environment can be found here:
+    // https://developer.apple.com/documentation/swiftui/environmentvalues
+    
     @Environment(\.scenePhase) var scenePhase
     @State var currentJoke: DadJoke = DadJoke(id: "",
                                               joke: "Knock, knock...",
@@ -83,6 +84,9 @@ struct ContentView: View {
             // Results might come bac right away, or, take some time to complete
             // ALSO: Any code below this calll will run before the function call completes
             await loadNewJoke()
+            print("I tried to load a new joke")
+            // Load the favourites from the file saved on the device
+            loadFavourites()
         }
         // React to changes of state for the app (foreground, background, inactive)
         .onChange(of: scenePhase) { newPhase in
@@ -92,6 +96,8 @@ struct ContentView: View {
                 print("Active")
             } else {
                 print("Background")
+                // Permanently save the list of tasks
+                persistFavourites()
             }
         }
         .navigationTitle("icanhazdadjoke?")
@@ -140,7 +146,55 @@ struct ContentView: View {
             print(error)
         }
     }
-    
+    // Save the data permanently
+    func persistFavourites() {
+        // Get a location under which to save the data
+        let filename = getDocumentsDirectory().appendingPathComponent(savedFavouritesLabel)
+        print(filename)
+        // Try to encode the data in our list of favourites to JSON
+        do {
+            // Create a JSON Encoder object
+            let encoder = JSONEncoder()
+            // Configured the encoder to "pretty print" the JSON
+            encoder.outputFormatting = .prettyPrinted
+            //Encode the list of favourites we've collected
+            let data = try encoder.encode(favourites)
+            // Write the JSON to a file in the filename location we came up with earlier
+            try data.write(to: filename, options: [.atomicWrite, .completeFileProtection])
+            // See the data that was written
+            print("Saved data to the Documents directory successfully.")
+            print("==========")
+            print(String(data: data, encoding: .utf8)!)
+        } catch {
+            print("Unable to write list of favourites to the Documents directory")
+            print("===========")
+            print(error.localizedDescription)
+        }
+    }
+    // Lodas the data that was saved to the device
+    // Loading our favourites...
+    func loadFavourites() {
+        // Get a location from which to load the data
+        let filename = getDocumentsDirectory().appendingPathComponent(savedFavouritesLabel)
+        print(filename)
+        // Attempt to load the data
+        do {
+            // Load the raw data
+            let data = try Data(contentsOf: filename)
+            // See the data that was read
+            print("Saved data to the Documents directory successfully.")
+            print("==========")
+            print(String(data: data, encoding: .utf8)!)
+            // Decode the JSON into Swift native data structures
+            // NOTE: We used [DadJoke] since we are loading into a list (array)
+            favourites = try JSONDecoder().decode([DadJoke].self, from: data)
+        } catch {
+            // What went wrong?
+            print("Could not load the data from the stored JSON file")
+            print("========")
+            print(error.localizedDescription)
+        }
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
