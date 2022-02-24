@@ -41,7 +41,7 @@ struct ContentView: View {
                         favourites.append(currentJoke)
                         
                         // Record that we have marked this as a favourite
-                        currenJokeAddedToFavourites = true;
+                        currenJokeAddedToFavourites = true
                     }
                 }
             Button(action: {
